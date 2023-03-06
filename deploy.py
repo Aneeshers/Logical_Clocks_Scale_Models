@@ -61,7 +61,10 @@ def producer(portVal):
             if len(msg_queue) > 0:
                 m = msg_queue.pop()
                 counter = calc_recv_timestamp(int(m), counter)
-                print("msg received " + local_time(counter) + " msg_queue len: " + str(len(msg_queue)))
+                f = open(filename, "w")
+
+                f.write("msg received " + local_time(counter) + " msg_queue len: " + str(len(msg_queue)))
+                f.close()
             else:
                 r = random.randint(0, 9)
                 if r < 4:
