@@ -9,6 +9,7 @@ import random
 import datetime
 import time
 
+
 # Some notes
 # The more ticks, the less drift
 # plots msq_queu over time
@@ -37,8 +38,6 @@ def consumer(conn):
 
     # Retrives global counter value
     global counter
-
-    print("consumer accepted connection" + str(conn)+"\n")
     
     # Decodes message and adds it to the queued message list
     while True:
@@ -56,15 +55,15 @@ def producer(portVal):
 
     # Creates a socket connecting 
     host= "127.0.0.1"
-    port1 = int(portVal[0])
-    port2 = int(portVal[1])
-    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    t = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-
+    port0 = int(portVal[1])
+    port1 = int(portVal[2])
+    port2 = int(portVal[3])
+    s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     # Sets the "system speed"
-    ticks = random.randint(1, 6)
+    ticks = random.randint(1, 10)
     sleepVal = 1/ticks
-    filename = str(port1) + ".txt"
+    filename = str(port0) + ".txt"
 
     # abstract
     # Start time
@@ -73,18 +72,16 @@ def producer(portVal):
     # Try to connect to socket
     try:
         # Connects to sockets
-        s.connect((host,port1))
-        t.connect((host,port2))
-
-        # Connection message
-        print("Client-side connection success to port val:" + str(port1) + "\n")
-        print("Client-side connection success to port val:" + str(port2) + "\n")
+        s1.connect((host,port1))
+        s2.connect((host,port2))
+        print(str(port0) + " is attempting to connect to " + str(port1) +  " AND " + str(port2))
+        print("on " + str(port0) + " s1 is", s1)
+        print("on " + str(port0) + " s2 is", s2)
 
         # While program is running send and dequeue messages
         while (True):
 
             # Prints to console the elapsed time
-            print("time elapsed ", time.time() - start)
             time.sleep(sleepVal)
             
             # If there are queued messages first dequeue
@@ -92,14 +89,14 @@ def producer(portVal):
 
                 # Get the most recent message
                 m = msg_queue.pop()
-
+                m = m.split(":")
                 # Creates a timestamp from the dateTime value in message
-                counter = calc_recv_timestamp(int(m), counter)
+                counter = calc_recv_timestamp(int(m[1]), counter)
                 
                 # TODO Do we want to make the writen information in CSF am 
                 # Open the file associated with the current process and writes to it before saving
                 f = open(filename, "a")
-                f.write("msg received " + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
+                f.write("msg received FROM " + m[0] + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
                 
                 # Closes file to save newly written data
                 f.close()
@@ -112,24 +109,25 @@ def producer(portVal):
 
                 # TODO implement actions for values 1,2,3
                 # Values not equal to 1, 2, or 3 result in no action
+                message = str(port0) + ":"
                 if r > 3 :
                     counter += 1
 
                 # Sends to process 1
                 elif r == 1:
                     counter += 1
-                    s.send(str(counter).encode('ascii'))
+                    s1.send((message + str(counter)).encode('ascii'))
                 
                 # Sends to process 2
                 elif r == 2: 
                     counter += 1
-                    t.send(str(counter).encode('ascii'))
+                    s2.send((message + str(counter)).encode('ascii'))
 
                 # Sends to both other processes
                 else:
                     counter += 1
-                    t.send(str(counter).encode('ascii'))
-                    s.send(str(counter).encode('ascii'))
+                    s1.send((message + str(counter)).encode('ascii'))
+                    s2.send((message + str(counter)).encode('ascii'))
 
     
     # Catches any errors when connecting to the socket
@@ -138,7 +136,7 @@ def producer(portVal):
  
 
 # Used to accept connections
-def init_machine(config):
+def init_machine(config, msg_len_plot):
 
     # Gets HOST and PORT from congfig
     HOST = str(config[0])
@@ -154,39 +152,34 @@ def init_machine(config):
     # Starts a new thread to recieve messages on
     while True:
         conn, addr = s.accept()
+        print(f"Connection on {PORT} from {conn} and {addr}")
         start_new_thread(consumer, (conn,))
  
 # Initalization of the different threads
-def machine(config):
+def machine(config, msg_len_plot):
 
     # TODO Idk what this does
     config.append(os.getpid())
-    global code
     global msg_queue
     global counter
-
     # Initalizes the counter an message queue
     counter = 0
     msg_queue = []
-
+    
     #print(config)
     # Starts thread to listen for new connections request
-    init_thread = Thread(target=init_machine, args=(config,))
+    init_thread = Thread(target=init_machine, args=(config, msg_len_plot))
     init_thread.start()
 
     # Add delay to initialize the server-side logic on all processes
     time.sleep(2)
-    print("CONFIG:",config)
+    print("CONFIG:", config)
 
     # Extensible to multiple producers
     # Starts thread to send connection requests
-    prod_thread = Thread(target=producer, args=(config[1:3],))
+    prod_thread = Thread(target=producer, args=(config,))
     prod_thread.start()
  
-
-    # TODO: Idk what this does tbh. Commented it out and it still works
-    # while True:
-    #     code = random.randint(1,3)
 
 
     ##### Starts Tests #####
@@ -202,17 +195,20 @@ if __name__ == '__main__':
     port2 = 3056
     port3 = 4056
  
+    msg_len_plot = {}
+    msg_len_plot[time.time()] = 0
+    
     # Initalizes Process1
-    config1=[localHost, port1, port2,]
-    p1 = Process(target=machine, args=(config1,))
+    config1=[localHost, port1, port2,port3]
+    p1 = Process(target=machine, args=(config1, msg_len_plot))
 
     # Initalizes Process2
-    config2=[localHost, port2, port3]
-    p2 = Process(target=machine, args=(config2,))
+    config2=[localHost, port2, port3, port1]
+    p2 = Process(target=machine, args=(config2, msg_len_plot))
 
     # Initalizes Process3
-    config3=[localHost, port3, port1]
-    p3 = Process(target=machine, args=(config3,))
+    config3=[localHost, port3, port1, port2]
+    p3 = Process(target=machine, args=(config3, msg_len_plot))
     
     # Start the processes
     p1.start()
