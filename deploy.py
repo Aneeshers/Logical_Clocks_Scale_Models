@@ -51,7 +51,6 @@ def producer(portVal):
     # Global variables counter and message queue list
     global counter
     global msg_queue
-    print("PORTVAL:",portVal)
 
     # Creates a socket connecting 
     host= "127.0.0.1"
@@ -65,7 +64,6 @@ def producer(portVal):
     sleepVal = 1/ticks
     filename = str(port0) + ".txt"
 
-    # abstract
     # Start time
     start = time.time()
 
@@ -75,8 +73,8 @@ def producer(portVal):
         s1.connect((host,port1))
         s2.connect((host,port2))
         print(str(port0) + " is attempting to connect to " + str(port1) +  " AND " + str(port2))
-        print("on " + str(port0) + " s1 is", s1)
-        print("on " + str(port0) + " s2 is", s2)
+        f = open(filename, "w")
+        f.close()
 
         # While program is running send and dequeue messages
         while (True):
@@ -107,7 +105,6 @@ def producer(portVal):
                 # Random number to decide what the action is
                 r = random.randint(1, 10)
 
-                # TODO implement actions for values 1,2,3
                 # Values not equal to 1, 2, or 3 result in no action
                 message = str(port0) + ":"
                 if r > 3 :
@@ -152,7 +149,6 @@ def init_machine(config, msg_len_plot):
     # Starts a new thread to recieve messages on
     while True:
         conn, addr = s.accept()
-        print(f"Connection on {PORT} from {conn} and {addr}")
         start_new_thread(consumer, (conn,))
  
 # Initalization of the different threads
@@ -173,7 +169,6 @@ def machine(config, msg_len_plot):
 
     # Add delay to initialize the server-side logic on all processes
     time.sleep(2)
-    print("CONFIG:", config)
 
     # Extensible to multiple producers
     # Starts thread to send connection requests
