@@ -60,7 +60,7 @@ def producer(portVal):
     s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     # Sets the "system speed"
-    ticks = random.randint(1, 10)
+    ticks = random.randint(1, 6)
     sleepVal = 1/ticks
     filename = str(port0) + ".txt"
 
@@ -94,7 +94,7 @@ def producer(portVal):
                 # TODO Do we want to make the writen information in CSF am 
                 # Open the file associated with the current process and writes to it before saving
                 f = open(filename, "a")
-                f.write("msg received FROM " + m[0] + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
+                f.write("msg received" + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
                 
                 # Closes file to save newly written data
                 f.close()
@@ -109,6 +109,11 @@ def producer(portVal):
                 message = str(port0) + ":"
                 if r > 3 :
                     counter += 1
+                    f = open(filename, "a")
+                    f.write("INTERNAL EVENT." + local_time(counter)+"\n")
+                
+                    # Closes file to save newly written data
+                    f.close()
 
                 # Sends to process 1
                 elif r == 1:
