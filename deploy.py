@@ -308,34 +308,30 @@ def machine(config):
 localHost= "127.0.0.1"
 
 if __name__ == '__main__':
-    try:
-        # Hard coded ports for the 3 proccesses
-        port1 = 2056
-        port2 = 3056
-        port3 = 4056
+
+    # Hard coded ports for the 3 proccesses
+    port1 = 2056
+    port2 = 3056
+    port3 = 4056
     
-        # Initalizes Process1
-        config1=[localHost, port1, port2,port3]
-        p1 = Process(target=machine, args=(config1,))
+    # Initalizes Process1
+    config1=[localHost, port1, port2,port3]
+    p1 = Process(target=machine, args=(config1,))
 
-        # Initalizes Process2
-        config2=[localHost, port2, port3, port1]
-        p2 = Process(target=machine, args=(config2,))
+    # Initalizes Process2
+    config2=[localHost, port2, port3, port1]
+    p2 = Process(target=machine, args=(config2,))
 
-        # Initalizes Process3
-        config3=[localHost, port3, port1, port2]
-        p3 = Process(target=machine, args=(config3,))
-        
-        # Start the processes
-        p1.start()
-        p2.start()
-        p3.start()
-        
-        # Once child processes starts the main Process
-        p1.join()
-        p2.join()
-        p3.join()
-
-    except AssertionError as error:
-        print(f"[PORT: MAIN FUNCTION] | UNIT TEST: __main__() - ❌ - {error}")
-        exit()
+    # Initalizes Process3
+    config3=[localHost, port3, port1, port2]
+    p3 = Process(target=machine, args=(config3,))
+    
+    # Start the processes
+    p1.start()
+    p2.start()
+    p3.start()
+    
+    # Once child processes starts the main Process
+    p1.join()
+    p2.join()
+    p3.join()
