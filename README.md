@@ -18,4 +18,4 @@ so you don't have to worry about manually clearing old logs. Each port has its o
 The experimental figures are located in the figure folder -- the figure folder has subfolders labeled by the tick size (this is the m value in our trials -- refer to design choices google doc)
 
 You can view our design decisions, documentation, experiments, results, and unit testing decisions here:
-https://docs.google.com/document/d/1vbAVpAJy-5Iyd06PHyGI3Aj-SBigErB9bznpL6dn5Jc/edit#
+[https://docs.google.com/document/d/1vbAVpAJy-5Iyd06PHyGI3Aj-SBigErB9bznpL6dn5Jc/edit#](https://docs.google.com/document/d/1vbAVpAJy-5Iyd06PHyGI3Aj-SBigErB9bznpL6dn5Jc/edit?usp=sharing)
