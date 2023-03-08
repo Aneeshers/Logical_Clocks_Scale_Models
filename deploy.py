@@ -26,8 +26,8 @@ def calc_recv_timestamp(recv_time_stamp, counter):
         print(f"[PORT: INTERNAL FUNCTION] | UNIT TEST: calc_recv_timestamp() - ❌ - {error}")
 
 
-# Creates a timestamp that is encoded into message that is sent between processes
-def local_time(counter):
+# Helper function to log logical clock time and global system time 
+def logical_and_global_time(counter):
     try:
         assert isinstance(counter,int), "counter is not an int val type"
         
@@ -46,10 +46,10 @@ def consumer(conn,PORT):
         assert isinstance(PORT,int), "given PORT an int value"
 
 
-        # Retrives global counter value
+        # Retrives global counter (logical clock) value
         global counter
         
-        # Decodes message and adds it to the queued message list
+        # Decodes message and adds it to the queued message list (note this instanteously)
         while True:
             data = conn.recv(1024)
             dataVal = data.decode('ascii')
@@ -70,7 +70,7 @@ def producer(portVal):
         # Checks if there are only 4 system args getting past in
         assert len(portVal) == 4, "config param didn't pass 4 arguments into producer()"
 
-        # Global variables counter and message queue list
+        # Global variables counter (logical clock) and message queue list
         global counter
         global msg_queue
 
@@ -98,6 +98,8 @@ def producer(portVal):
         # Sets the "system speed"
         ticks = random.randint(1, 24)
         sleepVal = 1/ticks
+
+        # Initialize log and plotting logs
         log = "logs/" + str(port0) + ".txt"
         times = "logs/" + str(port0) + "time.txt"
         msgqueulen = "logs/" + str(port0) + "msgqueulen.txt"
@@ -132,9 +134,10 @@ def producer(portVal):
             # While program is running send and dequeue messages
             while (True):
 
-                # Prints to console the elapsed time
+                # Simulate clock cycle speed
                 time.sleep(sleepVal)
 
+                # log plotting data every 5 seconds
                 if (time.time() - recurr) > 5:
 
                     recurr  = time.time()
@@ -162,7 +165,7 @@ def producer(portVal):
                     m = msg_queue.pop()
                     m = m.split(":")
 
-                    # Creates a timestamp from the dateTime value in message
+                    # update logical clock from the dateTime value in message and current logical clock
                     counter = calc_recv_timestamp(int(m[1]), counter)
 
                     assert calc_recv_timestamp(1,10) == 10, "Incorrect timestamp returned type 1"
@@ -171,10 +174,11 @@ def producer(portVal):
                     assert calc_recv_timestamp(-10,-10) == -10, "Incorrect timestamp returned type 4"
                     assert calc_recv_timestamp(10,-10) == 10, "Incorrect timestamp returned type 5"
 
-                    # Open the file associated with the current process and writes to it before saving
+                    # Log message was recieved, the logical clock time, and global time.
                     f = open(log, "a")
-                    f.write("msg received" + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
+                    f.write("msg received" + logical_and_global_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
                     
+
                     # Closes file to save newly written data
                     f.close()
 
@@ -186,10 +190,12 @@ def producer(portVal):
 
                     # Values not equal to 1, 2, or 3 result in no action
                     message = str(port0) + ":"
+
+                    # here the probability that an internal event will occur is 70%
                     if r > 3 :
                         counter += 1
                         f = open(log, "a")
-                        f.write("INTERNAL EVENT." + local_time(counter)+"\n")
+                        f.write("INTERNAL EVENT." + logical_and_global_time(counter)+"\n")
                     
                         # Closes file to save newly written data
                         f.close()
@@ -264,7 +270,7 @@ def init_machine(config):
         print(f"[PORT:{PORT}] | UNIT TEST: init_machine() - ❌ - {error}")
 
 
-# Initalization of the different threads
+# Initalization of the different threads per machine process
 def machine(config):
     try:
 
@@ -274,18 +280,17 @@ def machine(config):
         global msg_queue
         global counter
 
-        # Initalizes the counter an message queue
+        # Initalizes the counter (logical clock) and message queue
         counter = 0
         msg_queue = []
 
-        # Checks if counters and messages are set to zero on connection
+        # Checks if counter (logical clock) and messages are set to zero on connection
         assert counter == 0, "counter is not initialized to 0 in machine()"
         assert msg_queue == [], "msg_queue is not initialized to [] in machine()"
         
         print(f"[PORT:{config[1]}] | UNIT TEST: machine() - ✅")
 
         
-        #print(config)
         # Starts thread to listen for new connections request
         init_thread = Thread(target=init_machine, args=(config,))
         init_thread.start()
@@ -293,8 +298,7 @@ def machine(config):
         # Add delay to initialize the server-side logic on all processes
         time.sleep(2)
 
-        # Extensible to multiple producers
-        # Starts thread to send connection requests
+        # Starts thread to send connection requests and simulate clock speed + execute actions
         prod_thread = Thread(target=producer, args=(config,))
         prod_thread.start()
 
@@ -302,7 +306,7 @@ def machine(config):
         print(f"[PORT:{config[1]}] | UNIT TEST: machine() - ❌ - {error}")
 
 
-    ##### Start Tests #####
+##### Start Tests #####
 
 # Hard Code LocalHost
 localHost= "127.0.0.1"
