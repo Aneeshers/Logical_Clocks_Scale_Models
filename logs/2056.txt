@@ -1,0 +1,1 @@
+msg received (LAMPORT_TIME=8, SYSTEM_TIME=2023-03-08 01:14:14.597005) msg_queue len: 1

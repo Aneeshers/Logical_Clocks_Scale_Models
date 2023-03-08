@@ -8,6 +8,7 @@ from threading import Thread
 import random
 import datetime
 import time
+import sys
 
 
 # Some notes
@@ -60,12 +61,16 @@ def producer(portVal):
     s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     # Sets the "system speed"
-    ticks = random.randint(1, 6)
+    ticks = random.randint(1, 9)
     sleepVal = 1/ticks
-    filename = str(port0) + ".txt"
-
+    log = "logs/" + str(port0) + ".txt"
+    times = "logs/" + str(port0) + "time.txt"
+    msgqueulen = "logs/" + str(port0) + "msgqueulen.txt"
+    timestamps = "logs/" + str(port0) + "timestamps.txt"
+    
     # Start time
     start = time.time()
+    recurr = time.time()
 
     # Try to connect to socket
     try:
@@ -73,27 +78,56 @@ def producer(portVal):
         s1.connect((host,port1))
         s2.connect((host,port2))
         print(str(port0) + " is attempting to connect to " + str(port1) +  " AND " + str(port2))
-        f = open(filename, "w")
+        f = open(log, "w")
         f.close()
-
+        xf = open(times, "w")
+        xf.close()
+        yf = open(msgqueulen, "w")
+        yf.close()
+        tf = open(timestamps, "w")
+        tf.close()
         # While program is running send and dequeue messages
         while (True):
 
             # Prints to console the elapsed time
             time.sleep(sleepVal)
+
+            if (time.time() - recurr) > 5:
+
+                recurr  = time.time()
             
+                # log seconds elapsed every 5 seconds (system time)
+                xf = open(times, "a")
+                xf.write(str(time.time() - start) + "," )
+                xf.close()
+
+                # log msg queue lengths at those system times
+                yf = open(msgqueulen, "a")
+                yf.write(str(len(msg_queue)) + ",")
+                yf.close()
+                
+                # log logical clock time stamps at those system times
+                tf = open(timestamps, "a")
+                tf.write(str(counter) + ",")
+                tf.close()
+                
+                
             # If there are queued messages first dequeue
             if len(msg_queue) > 0:
+                
 
                 # Get the most recent message
                 m = msg_queue.pop()
                 m = m.split(":")
                 # Creates a timestamp from the dateTime value in message
                 counter = calc_recv_timestamp(int(m[1]), counter)
+               
                 
+
+
                 # TODO Do we want to make the writen information in CSF am 
                 # Open the file associated with the current process and writes to it before saving
-                f = open(filename, "a")
+                f = open(log, "a")
                 f.write("msg received" + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
                 
                 # Closes file to save newly written data
@@ -109,7 +143,7 @@ def producer(portVal):
                 message = str(port0) + ":"
                 if r > 3 :
                     counter += 1
-                    f = open(filename, "a")
+                    f = open(log, "a")
                     f.write("INTERNAL EVENT." + local_time(counter)+"\n")
                 
                     # Closes file to save newly written data
@@ -138,48 +172,77 @@ def producer(portVal):
  
 
 # Used to accept connections
-def init_machine(config, msg_len_plot):
+def init_machine(config):
+    try:
 
-    # Gets HOST and PORT from congfig
-    HOST = str(config[0])
-    PORT = int(config[1])
+        # Gets HOST and PORT from congfig
+        HOST = str(config[0])
+        PORT = int(config[1])
 
-    print("starting server| port val:", PORT)
+        assert len(config) == 4, "config param didn't pass 4 arguments into init_machine()"
 
-    # Connects to HOST and PORT
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, PORT))
-    s.listen()
+        print("starting server| port val:", PORT)
 
-    # Starts a new thread to recieve messages on
-    while True:
-        conn, addr = s.accept()
-        start_new_thread(consumer, (conn,))
- 
+        # Connects to HOST and PORT
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # assert not hasattr(s, 'fileno'), "socket was unable to be created in init_machine()"
+
+        s.bind((HOST, PORT))
+
+        # assert s.getsockname()[1] == 0, f"socket was unable to connect to: [PORT: {PORT}]"
+
+        s.listen()
+
+        # assert s.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN) != 1, f"socket was unable to listen on: [PORT: {PORT}]"
+
+        print(f"PORT {PORT}: machine() - ✅")
+        # Starts a new thread to recieve messages on
+        while True:
+            conn, addr = s.accept()
+            start_new_thread(consumer, (conn,))
+
+    except AssertionError as error:
+        print(f"[PORT:{PORT}]| UNIT TEST: init_machine() - ❌ - {error}")
+
+
 # Initalization of the different threads
-def machine(config, msg_len_plot):
+def machine(config):
+    try:
 
-    # TODO Idk what this does
-    config.append(os.getpid())
-    global msg_queue
-    global counter
-    # Initalizes the counter an message queue
-    counter = 0
-    msg_queue = []
-    
-    #print(config)
-    # Starts thread to listen for new connections request
-    init_thread = Thread(target=init_machine, args=(config, msg_len_plot))
-    init_thread.start()
+        # Checks if there are only 4 system args getting past in
+        assert len(config) == 4, "config param didn't pass 4 arguments into machine()"
 
-    # Add delay to initialize the server-side logic on all processes
-    time.sleep(2)
+        # # TODO Idk what this does
+        # config.append(os.getpid())
+        global msg_queue
+        global counter
+        # Initalizes the counter an message queue
+        counter = 0
+        msg_queue = []
 
-    # Extensible to multiple producers
-    # Starts thread to send connection requests
-    prod_thread = Thread(target=producer, args=(config,))
-    prod_thread.start()
- 
+        # Checks if counters and messages are set to zero on connection
+        assert counter == 0, "counter is not initialized to 0 in machine()"
+        assert msg_queue == [], "msg_queue is not initialized to [] in machine()"
+        
+        print(f"[PORT:{config[1]}]| UNIT TEST: machine() - ✅")
+
+        
+        #print(config)
+        # Starts thread to listen for new connections request
+        init_thread = Thread(target=init_machine, args=(config,))
+        init_thread.start()
+
+        # Add delay to initialize the server-side logic on all processes
+        time.sleep(2)
+
+        # Extensible to multiple producers
+        # Starts thread to send connection requests
+        prod_thread = Thread(target=producer, args=(config,))
+        prod_thread.start()
+
+    except AssertionError as error:
+        print("UNIT TEST: machine() - ❌ -",error)
 
 
     ##### Starts Tests #####
@@ -187,35 +250,58 @@ def machine(config, msg_len_plot):
 # Hard Code LocalHost
 localHost= "127.0.0.1"
  
+def defaultPort(default, CL_arg):
+    print(default)
+    if not (str(default)).isnumeric():
+        return ValueError("Default port needs to be a number")
+    try:
+        port = int(CL_arg)
+        return port
+    except:
+        return default
+
+
 
 if __name__ == '__main__':
+    try:
+        # Hard coded ports for the 3 proccesses
+        if len(sys.argv) == 5:
+            port1 = defaultPort(2056,sys.argv[2])
+            port2 = defaultPort(3056,sys.argv[3])
+            port3 = defaultPort(4056,sys.argv[4])
+        else:
+            port1 = 2056
+            port2 = 3056
+            port3 = 4056
 
-    # Hard coded ports for the 3 proccesses
-    port1 = 2056
-    port2 = 3056
-    port3 = 4056
- 
-    msg_len_plot = {}
-    msg_len_plot[time.time()] = 0
-    
-    # Initalizes Process1
-    config1=[localHost, port1, port2,port3]
-    p1 = Process(target=machine, args=(config1, msg_len_plot))
 
-    # Initalizes Process2
-    config2=[localHost, port2, port3, port1]
-    p2 = Process(target=machine, args=(config2, msg_len_plot))
+        # Assertions for checking if the port is correct
+        assert defaultPort(2056,"ASDF") == 2056
+        assert defaultPort(3056, 2056) == 2056
+        assert isinstance(defaultPort("ASDF", 2056),ValueError)
+        assert isinstance(defaultPort("ASDF", "2056"),ValueError)
+    
+        
+        # Initalizes Process1
+        config1=[localHost, port1, port2,port3]
+        p1 = Process(target=machine, args=(config1,))
 
-    # Initalizes Process3
-    config3=[localHost, port3, port1, port2]
-    p3 = Process(target=machine, args=(config3, msg_len_plot))
-    
-    # Start the processes
-    p1.start()
-    p2.start()
-    p3.start()
-    
-    # Once child processes starts the main Process
-    p1.join()
-    p2.join()
-    p3.join()
+        # Initalizes Process2
+        config2=[localHost, port2, port3, port1]
+        p2 = Process(target=machine, args=(config2,))
+
+        # Initalizes Process3
+        config3=[localHost, port3, port1, port2]
+        p3 = Process(target=machine, args=(config3,))
+        
+        # Start the processes
+        p1.start()
+        p2.start()
+        p3.start()
+        
+        # Once child processes starts the main Process
+        p1.join()
+        p2.join()
+        p3.join()
+    except Exception:
+        exit()
