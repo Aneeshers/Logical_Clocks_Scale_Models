@@ -61,7 +61,7 @@ def producer(portVal):
     s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     # Sets the "system speed"
-    ticks = random.randint(1, 9)
+    ticks = random.randint(1, 24)
     sleepVal = 1/ticks
     log = "logs/" + str(port0) + ".txt"
     times = "logs/" + str(port0) + "time.txt"

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot_msg_queue_len_over_time(port, maxtick):
+def plot_msg_queue_len_over_time(port, maxtick, seperated):
 
     # Get time data from P1
     filename = "logs/" + str(port) + "time.txt"
@@ -35,15 +35,19 @@ def plot_msg_queue_len_over_time(port, maxtick):
         y[l] = int(y[l])
     m = min(len(x), len(y))
 
-    print(y)
-
-    plt.figure()
+    if seperated:
+        plt.figure()
     plt.plot(x[:m - 1],y[:m - 1])
-    plt.title(str(port) + " MSQ_QUEUE_LEN over TIME" + " TickMax=" + str(maxtick))
+    if seperated:
+        plt.title(str(port) + " MSQ_QUEUE_LEN over TIME" + " TickMax (Full range)=" + str(maxtick))
+    else:
+        plt.title("(ALL Machines) MSQ_QUEUE_LEN over TIME" + " TickMax (Full range)=" + str(maxtick))
     plt.xlabel("time (seconds)")
     plt.ylabel("MSG_QUEUE_LEGNTH")
-    plt.savefig("figures/" + str(maxtick) + "/" + str(port) + " MSQ_QUEUE_LEN over TIME" + " TickMax=" + str(maxtick) + ".pdf")
-
+    if seperated:
+        plt.savefig("figures/" + str(maxtick) + "/" + "FullRange" + "/" + str(port) +  " MSQ_QUEUE_LEN over TIME" + " TickMax (Full range)=" + str(maxtick) + ".pdf")
+    else:
+        plt.savefig("figures/" + str(maxtick) + "/" + "FullRange" + "/" + "(ALL Machines) MSQ_QUEUE_LEN over TIME" + " TickMax (Full range)=" + str(maxtick) + ".pdf")
 
 def plot_logical_clock_over_time(port, maxtick, seperated):
 
@@ -79,33 +83,37 @@ def plot_logical_clock_over_time(port, maxtick, seperated):
         y[l] = int(y[l])
     m = min(len(x), len(y))
 
-    print(y)
     if seperated:
         plt.figure()
     plt.plot(x[:m - 1],y[:m - 1])
     if seperated:
-        plt.title(str(port) + " LOGICAL CLOCK over TIME" + " TickMax=" + str(maxtick))
+        plt.title(str(port) + " LOGICAL CLOCK over TIME" + " TickMax (Full range)=" + str(maxtick))
     else:
-        plt.title("LOGICAL CLOCKs DRIFT over TIME" + " TickMax=" + str(maxtick))
+        plt.title("(ALL Machines) LOGICAL CLOCK over TIME" + " TickMax (Full range)=" + str(maxtick))
     plt.xlabel("time (seconds)")
     plt.ylabel("LOGICAL CLOCK (LAMPORT TIME STAMP)")
     if seperated:
-        plt.savefig("figures/" + str(maxtick) + "/"+ str(port) + " LOGICAL CLOCK over TIME" + " TickMax=" + str(maxtick) + "_SEP"+ ".pdf")
+        plt.savefig("figures/" + str(maxtick) + "/" + "FullRange" + "/"+ str(port) + " LOGICAL CLOCK over TIME" + " TickMax (Full range)=" + str(maxtick) + "_SEP"+ ".pdf")
     else:
-        plt.savefig("figures/" + str(maxtick) + "/" + str(port) + " LOGICAL CLOCK DRIFT over TIME" + " TickMax=" + str(maxtick) + ".pdf")
+        plt.savefig("figures/" + str(maxtick) + "/" + "FullRange" + "/" + "(ALL Machines) LOGICAL CLOCK DRIFT over TIME" + " TickMax (Full range)=" + str(maxtick) + ".pdf")
 
 
+maxtick = 24
+plot_msg_queue_len_over_time(2056,maxtick, True)
+plot_msg_queue_len_over_time(3056,maxtick, True)
+plot_msg_queue_len_over_time(4056,maxtick, True)
 
-plot_msg_queue_len_over_time(2056,9)
-plot_msg_queue_len_over_time(3056,9)
-plot_msg_queue_len_over_time(4056,9)
-
-plot_logical_clock_over_time(2056,9, True)
-plot_logical_clock_over_time(3056,9, True)
-plot_logical_clock_over_time(4056,9, True)
+plot_msg_queue_len_over_time(2056,maxtick, False)
+plot_msg_queue_len_over_time(3056,maxtick, False)
+plot_msg_queue_len_over_time(4056,maxtick, False)
 
 
-plot_logical_clock_over_time(2056,9, False)
-plot_logical_clock_over_time(3056,9, False)
-plot_logical_clock_over_time(4056,9, False)
+plot_logical_clock_over_time(2056,maxtick, True)
+plot_logical_clock_over_time(3056,maxtick, True)
+plot_logical_clock_over_time(4056,maxtick, True)
+
+
+plot_logical_clock_over_time(2056,maxtick, False)
+plot_logical_clock_over_time(3056,maxtick, False)
+plot_logical_clock_over_time(4056,maxtick, False)
 
