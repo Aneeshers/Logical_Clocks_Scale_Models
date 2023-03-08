@@ -19,3 +19,8 @@ The experimental figures are located in the figure folder -- the figure folder h
 
 You can view our design decisions, documentation, experiments, results, and unit testing decisions here:
 [https://docs.google.com/document/d/1vbAVpAJy-5Iyd06PHyGI3Aj-SBigErB9bznpL6dn5Jc/edit#](https://docs.google.com/document/d/1vbAVpAJy-5Iyd06PHyGI3Aj-SBigErB9bznpL6dn5Jc/edit?usp=sharing)
+
+Picture indicating our design clarity and general system design: https://drive.google.com/file/d/17D28BqjNrQj4HL-LQc5_Yn6xKd2YyjVF/view?usp=sharing
+UML diagram of our code: https://drive.google.com/file/d/1ZBopwoeLStJVL4NAQvQmJQpDF0ADL7Wz/view?usp=sharing
+
+
