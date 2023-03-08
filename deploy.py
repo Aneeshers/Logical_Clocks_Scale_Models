@@ -9,201 +9,259 @@ import random
 import datetime
 import time
 import sys
+import select
 
 
-# Some notes
-# The more ticks, the less drift
-# plots msq_queu over time
-# plots lamport time stamps for each process 
-
-# once they have been initalized -- THEN you can make choices on design
-
-
-# Unit tests
-# Whether your packet has a valid payload?
-# write about the checks you make on the packets?
-# error checking -- host and port, randomness, use assertions (host and port should be terminal)
-
-
-# sleep for 1/ticks 
+# Function takes the max of two values timestamp values
 def calc_recv_timestamp(recv_time_stamp, counter):
-    return max(recv_time_stamp, counter)
+    try:
+        # Check if the inputs are the correct time
+        assert isinstance(recv_time_stamp,int), "recv_time_stamp is not an int val type "
+        assert isinstance(counter,int), "counter is not an int val type"
+     
+        # Returns the larger timestamp
+        return max(recv_time_stamp, counter)
 
+    except AssertionError as error:
+        print(f"[PORT: INTERNAL FUNCTION] | UNIT TEST: calc_recv_timestamp() - ❌ - {error}")
+
+
+# Creates a timestamp that is encoded into message that is sent between processes
 def local_time(counter):
-    return ' (LAMPORT_TIME={}, SYSTEM_TIME={})'.format(counter,
+    try:
+        assert isinstance(counter,int), "counter is not an int val type"
+        
+        return ' (LAMPORT_TIME={}, SYSTEM_TIME={})'.format(counter,
                                                      datetime.datetime.now())
+    except AssertionError as error:
+        print(f"[PORT: INTERNAL FUNCTION] | UNIT TEST: local_time() - ❌ - {error}")
 
 
 # Listens for incoming messages on the connection
-def consumer(conn):
+def consumer(conn,PORT):
+    try:
 
-    # Retrives global counter value
-    global counter
-    
-    # Decodes message and adds it to the queued message list
-    while True:
-        data = conn.recv(1024)
-        dataVal = data.decode('ascii')
-        msg_queue.append(dataVal)
+        # Check if the parameters 
+        assert conn, "empty socket passed into consumer()"
+        assert isinstance(PORT,int), "given PORT an int value"
+
+
+        # Retrives global counter value
+        global counter
+        
+        # Decodes message and adds it to the queued message list
+        while True:
+            data = conn.recv(1024)
+            dataVal = data.decode('ascii')
+
+            # Check if the recieved message is the correct type before appending to message
+            assert isinstance(dataVal,str), f"received data payload is not a str type"
+
+            msg_queue.append(dataVal)
+
+    except AssertionError as error:
+        print(f"[PORT:{PORT}] | UNIT TEST: consumer() - ❌ - {error}")
+
  
 # Sends connection request and once connected sends messages to other processes
 def producer(portVal):
-
-    # Global variables counter and message queue list
-    global counter
-    global msg_queue
-
-    # Creates a socket connecting 
-    host= "127.0.0.1"
-    port0 = int(portVal[1])
-    port1 = int(portVal[2])
-    port2 = int(portVal[3])
-    s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    # Sets the "system speed"
-    ticks = random.randint(1, 24)
-    sleepVal = 1/ticks
-    log = "logs/" + str(port0) + ".txt"
-    times = "logs/" + str(port0) + "time.txt"
-    msgqueulen = "logs/" + str(port0) + "msgqueulen.txt"
-    timestamps = "logs/" + str(port0) + "timestamps.txt"
-    
-    # Start time
-    start = time.time()
-    recurr = time.time()
-
-    # Try to connect to socket
     try:
-        # Connects to sockets
-        s1.connect((host,port1))
-        s2.connect((host,port2))
-        print(str(port0) + " is attempting to connect to " + str(port1) +  " AND " + str(port2))
-        f = open(log, "w")
-        f.close()
-        xf = open(times, "w")
-        xf.close()
-        yf = open(msgqueulen, "w")
-        yf.close()
-        tf = open(timestamps, "w")
-        tf.close()
-        # While program is running send and dequeue messages
-        while (True):
 
-            # Prints to console the elapsed time
-            time.sleep(sleepVal)
+        # Checks if there are only 4 system args getting past in
+        assert len(portVal) == 4, "config param didn't pass 4 arguments into producer()"
 
-            if (time.time() - recurr) > 5:
+        # Global variables counter and message queue list
+        global counter
+        global msg_queue
 
-                recurr  = time.time()
-            
-                # log seconds elapsed every 5 seconds (system time)
-                xf = open(times, "a")
-                xf.write(str(time.time() - start) + "," )
-                xf.close()
+        # Creates a socket connecting 
+        host= "127.0.0.1"
 
-                # log msg queue lengths at those system times
-                yf = open(msgqueulen, "a")
-                yf.write(str(len(msg_queue)) + ",")
-                yf.close()
+        # Initalizes ports
+        port0 = int(portVal[1])
+        port1 = int(portVal[2])
+        port2 = int(portVal[3])
+
+        # Check if Ports an integers (able to be converted)
+        assert isinstance(port0, int), "PORT was not was unable to be converted to an int"
+        assert isinstance(port1, int), "PORT was not was unable to be converted to an int"
+        assert isinstance(port2, int), "PORT was not was unable to be converted to an int"
+
+        # starts sockets to communicate to port1 and port2
+        s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+
+        # Checks if sockets were successfully created
+        assert s1, "socket was unable to be created in producer()"
+        assert s2, "socket was unable to be created in producer()"
+
+        # Sets the "system speed"
+        ticks = random.randint(1, 24)
+        sleepVal = 1/ticks
+        log = "logs/" + str(port0) + ".txt"
+        times = "logs/" + str(port0) + "time.txt"
+        msgqueulen = "logs/" + str(port0) + "msgqueulen.txt"
+        timestamps = "logs/" + str(port0) + "timestamps.txt"
+        
+        # Start time
+        start = time.time()
+        recurr = time.time()
+
+        # Try to connect to socket
+        try:
+            # Connects to sockets
+            s1.connect((host,port1))
+            s2.connect((host,port2))
+
+            # Checks if sockets were able to connect to the other ports
+            assert s1.getsockname() , f"socket was unable to connect to: [PORT: {port1}, HOST: {host}]"
+            assert s2.getsockname() , f"socket was unable to connect to: [PORT: {port2}, HOST: {host}]"
+
+            print(str(port0) + " is attempting to connect to " + str(port1) +  " AND " + str(port2))
+
+            # Create/Clear log files and other files used to graph
+            f = open(log, "w")
+            f.close()
+            xf = open(times, "w")
+            xf.close()
+            yf = open(msgqueulen, "w")
+            yf.close()
+            tf = open(timestamps, "w")
+            tf.close()
+
+            # While program is running send and dequeue messages
+            while (True):
+
+                # Prints to console the elapsed time
+                time.sleep(sleepVal)
+
+                if (time.time() - recurr) > 5:
+
+                    recurr  = time.time()
                 
-                # log logical clock time stamps at those system times
-                tf = open(timestamps, "a")
-                tf.write(str(counter) + ",")
-                tf.close()
-                
-                
-            # If there are queued messages first dequeue
-            if len(msg_queue) > 0:
-                
+                    # log seconds elapsed every 5 seconds (system time)
+                    xf = open(times, "a")
+                    xf.write(str(time.time() - start) + "," )
+                    xf.close()
 
-                # Get the most recent message
-                m = msg_queue.pop()
-                m = m.split(":")
-                # Creates a timestamp from the dateTime value in message
-                counter = calc_recv_timestamp(int(m[1]), counter)
-               
-                
+                    # log msg queue lengths at those system times
+                    yf = open(msgqueulen, "a")
+                    yf.write(str(len(msg_queue)) + ",")
+                    yf.close()
+                    
+                    # log logical clock time stamps at those system times
+                    tf = open(timestamps, "a")
+                    tf.write(str(counter) + ",")
+                    tf.close()
+                    
+                    
+                # If there are queued messages first dequeue
+                if len(msg_queue) > 0:
+                    
+                    # Get the most recent message
+                    m = msg_queue.pop()
+                    m = m.split(":")
 
+                    # Creates a timestamp from the dateTime value in message
+                    counter = calc_recv_timestamp(int(m[1]), counter)
 
-                # TODO Do we want to make the writen information in CSF am 
-                # Open the file associated with the current process and writes to it before saving
-                f = open(log, "a")
-                f.write("msg received" + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
-                
-                # Closes file to save newly written data
-                f.close()
+                    assert calc_recv_timestamp(1,10) == 10, "Incorrect timestamp returned type 1"
+                    assert calc_recv_timestamp(0, 0) == 0, "Incorrect timestamp returned type 2"
+                    assert calc_recv_timestamp(-10,10) == 10, "Incorrect timestamp returned type 3"
+                    assert calc_recv_timestamp(-10,-10) == -10, "Incorrect timestamp returned type 4"
+                    assert calc_recv_timestamp(10,-10) == 10, "Incorrect timestamp returned type 5"
 
-            # If there are no messages in queque send a message
-            else:
-                
-                # Random number to decide what the action is
-                r = random.randint(1, 10)
-
-                # Values not equal to 1, 2, or 3 result in no action
-                message = str(port0) + ":"
-                if r > 3 :
-                    counter += 1
+                    # Open the file associated with the current process and writes to it before saving
                     f = open(log, "a")
-                    f.write("INTERNAL EVENT." + local_time(counter)+"\n")
-                
+                    f.write("msg received" + local_time(counter) + " msg_queue len: " + str(len(msg_queue))+"\n")
+                    
                     # Closes file to save newly written data
                     f.close()
 
-                # Sends to process 1
-                elif r == 1:
-                    counter += 1
-                    s1.send((message + str(counter)).encode('ascii'))
-                
-                # Sends to process 2
-                elif r == 2: 
-                    counter += 1
-                    s2.send((message + str(counter)).encode('ascii'))
-
-                # Sends to both other processes
+                # If there are no messages in queque send a message
                 else:
-                    counter += 1
-                    s1.send((message + str(counter)).encode('ascii'))
-                    s2.send((message + str(counter)).encode('ascii'))
+                    
+                    # Random number to decide what the action is
+                    r = random.randint(1, 10)
 
-    
-    # Catches any errors when connecting to the socket
-    except socket.error as e:
-        print ("Error connecting producer: %s" % e)
- 
+                    # Values not equal to 1, 2, or 3 result in no action
+                    message = str(port0) + ":"
+                    if r > 3 :
+                        counter += 1
+                        f = open(log, "a")
+                        f.write("INTERNAL EVENT." + local_time(counter)+"\n")
+                    
+                        # Closes file to save newly written data
+                        f.close()
+
+                    # Sends to process 1
+                    elif r == 1:
+                        counter += 1
+                        s1.send((message + str(counter)).encode('ascii'))
+                    
+                    # Sends to process 2
+                    elif r == 2: 
+                        counter += 1
+                        s2.send((message + str(counter)).encode('ascii'))
+
+                    # Sends to both other processes
+                    else:
+                        counter += 1
+                        s1.send((message + str(counter)).encode('ascii'))
+                        s2.send((message + str(counter)).encode('ascii'))
+
+        
+        # Catches any errors when connecting to the socket
+        except socket.error as e:
+            print ("Error connecting producer: %s" % e)
+
+    except AssertionError as error:
+        print(f"[PORT:{port0}] | UNIT TEST: producer() - ❌ - {error}")
+
 
 # Used to accept connections
 def init_machine(config):
     try:
 
+        # Checks if there are only 4 system args getting past in
+        assert len(config) == 4, "config param didn't pass 4 arguments into init_machine()"
+
         # Gets HOST and PORT from congfig
         HOST = str(config[0])
         PORT = int(config[1])
 
-        assert len(config) == 4, "config param didn't pass 4 arguments into init_machine()"
+        # Checks if the PORT and HOST are acceptable types
+        assert isinstance(HOST, str), "HOST was not was unable to be converted a string"
+        assert isinstance(PORT, int), "PORT was not was unable to be converted to an int"
 
         print("starting server| port val:", PORT)
 
         # Connects to HOST and PORT
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        # assert not hasattr(s, 'fileno'), "socket was unable to be created in init_machine()"
+        # Check if the socket was succesfully created
+        assert s, f"socket was unable to be created in init_machine()"
 
         s.bind((HOST, PORT))
 
-        # assert s.getsockname()[1] == 0, f"socket was unable to connect to: [PORT: {PORT}]"
+        # Checks if socket binded correctly
+        assert s.getsockname() , f"socket was unable to connect to: [PORT: {PORT}, HOST: {HOST}]"
 
         s.listen()
+        
+        # Checks if s is in the read list (aka listening)
+        read_list, write_list, error_list = select.select([s], [], [], 5)
+        assert s in read_list, f"socket was unable to listen on: [PORT: {PORT}, HOST:{HOST}]"
 
-        # assert s.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN) != 1, f"socket was unable to listen on: [PORT: {PORT}]"
+        print(f"[PORT:{PORT}] | UNIT TEST: init_machine() - ✅")
 
-        print(f"PORT {PORT}: machine() - ✅")
         # Starts a new thread to recieve messages on
         while True:
             conn, addr = s.accept()
-            start_new_thread(consumer, (conn,))
+            start_new_thread(consumer, (conn,PORT))
 
     except AssertionError as error:
-        print(f"[PORT:{PORT}]| UNIT TEST: init_machine() - ❌ - {error}")
+        print(f"[PORT:{PORT}] | UNIT TEST: init_machine() - ❌ - {error}")
 
 
 # Initalization of the different threads
@@ -213,10 +271,9 @@ def machine(config):
         # Checks if there are only 4 system args getting past in
         assert len(config) == 4, "config param didn't pass 4 arguments into machine()"
 
-        # # TODO Idk what this does
-        # config.append(os.getpid())
         global msg_queue
         global counter
+
         # Initalizes the counter an message queue
         counter = 0
         msg_queue = []
@@ -225,7 +282,7 @@ def machine(config):
         assert counter == 0, "counter is not initialized to 0 in machine()"
         assert msg_queue == [], "msg_queue is not initialized to [] in machine()"
         
-        print(f"[PORT:{config[1]}]| UNIT TEST: machine() - ✅")
+        print(f"[PORT:{config[1]}] | UNIT TEST: machine() - ✅")
 
         
         #print(config)
@@ -242,46 +299,21 @@ def machine(config):
         prod_thread.start()
 
     except AssertionError as error:
-        print("UNIT TEST: machine() - ❌ -",error)
+        print(f"[PORT:{config[1]}] | UNIT TEST: machine() - ❌ - {error}")
 
 
-    ##### Starts Tests #####
+    ##### Start Tests #####
 
 # Hard Code LocalHost
 localHost= "127.0.0.1"
- 
-def defaultPort(default, CL_arg):
-    print(default)
-    if not (str(default)).isnumeric():
-        return ValueError("Default port needs to be a number")
-    try:
-        port = int(CL_arg)
-        return port
-    except:
-        return default
-
-
 
 if __name__ == '__main__':
     try:
         # Hard coded ports for the 3 proccesses
-        if len(sys.argv) == 5:
-            port1 = defaultPort(2056,sys.argv[2])
-            port2 = defaultPort(3056,sys.argv[3])
-            port3 = defaultPort(4056,sys.argv[4])
-        else:
-            port1 = 2056
-            port2 = 3056
-            port3 = 4056
-
-
-        # Assertions for checking if the port is correct
-        assert defaultPort(2056,"ASDF") == 2056
-        assert defaultPort(3056, 2056) == 2056
-        assert isinstance(defaultPort("ASDF", 2056),ValueError)
-        assert isinstance(defaultPort("ASDF", "2056"),ValueError)
+        port1 = 2056
+        port2 = 3056
+        port3 = 4056
     
-        
         # Initalizes Process1
         config1=[localHost, port1, port2,port3]
         p1 = Process(target=machine, args=(config1,))
@@ -303,5 +335,7 @@ if __name__ == '__main__':
         p1.join()
         p2.join()
         p3.join()
-    except Exception:
+
+    except AssertionError as error:
+        print(f"[PORT: MAIN FUNCTION] | UNIT TEST: __main__() - ❌ - {error}")
         exit()
