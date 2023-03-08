@@ -160,7 +160,13 @@ def producer(portVal):
                     
                     # Get the most recent message
                     m = msg_queue.pop()
+                    
+                    assert isinstance(m, str), "Message that is popped is not a string value"
+
                     m = m.split(":")
+
+                    assert len(m) == 2, "Invalid message has been sent. Contains extra information."
+
 
                     # Creates a timestamp from the dateTime value in message
                     counter = calc_recv_timestamp(int(m[1]), counter)
